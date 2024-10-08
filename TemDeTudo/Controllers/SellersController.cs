@@ -1,45 +1,168 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TemDeTudo.Data;
 using TemDeTudo.Models;
 
-namespace TemDeTudo.Controllers
+namespace TemDeTudo.Views.Sellers
 {
     public class SellersController : Controller
     {
         private readonly TemDeTudoContext _context;
 
-        public SellersController(TemDeTudoContext context){
+        public SellersController(TemDeTudoContext context)
+        {
             _context = context;
         }
-        public IActionResult Index()
+
+        // GET: Sellers
+        public async Task<IActionResult> Index()
         {
-            var sellers = _context.Seller.Include("Department").ToList();
-            return View(sellers);
+            var temDeTudoContext = _context.Seller.Include(s => s.Department);
+            return View(await temDeTudoContext.ToListAsync());
         }
 
-        public IActionResult Create() {
+        // GET: Sellers/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null || _context.Seller == null)
+            {
+                return NotFound();
+            }
 
-
-            
-                
-                return View();
-        }
-        [HttpPost]
-        public IActionResult Create(Seller seller) {
-
+            var seller = await _context.Seller
+                .Include(s => s.Department)
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (seller == null)
             {
                 return NotFound();
             }
-            seller.Department =_context.Department.FirstOrDefault();
-            seller.DepartmentId = seller.Department.Id;
 
-            _context.Seller.Add(seller);
-            _context.SaveChanges();
-
-            return RedirectToAction("Index");
+            return View(seller);
         }
 
+        // GET: Sellers/Create
+        public IActionResult Create()
+        {
+            ViewData["DepartmentId"] = new SelectList(_context.Department, "Id", "Id");
+            return View();
+        }
+
+        // POST: Sellers/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Id,Name,Email,BirthDate,Salary,DepartmentId")] Seller seller)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(seller);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            ViewData["DepartmentId"] = new SelectList(_context.Department, "Id", "Id", seller.DepartmentId);
+            return View(seller);
+        }
+
+        // GET: Sellers/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null || _context.Seller == null)
+            {
+                return NotFound();
+            }
+
+            var seller = await _context.Seller.FindAsync(id);
+            if (seller == null)
+            {
+                return NotFound();
+            }
+            ViewData["DepartmentId"] = new SelectList(_context.Department, "Id", "Id", seller.DepartmentId);
+            return View(seller);
+        }
+
+        // POST: Sellers/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Email,BirthDate,Salary,DepartmentId")] Seller seller)
+        {
+            if (id != seller.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(seller);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!SellerExists(seller.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            ViewData["DepartmentId"] = new SelectList(_context.Department, "Id", "Id", seller.DepartmentId);
+            return View(seller);
+        }
+
+        // GET: Sellers/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null || _context.Seller == null)
+            {
+                return NotFound();
+            }
+
+            var seller = await _context.Seller
+                .Include(s => s.Department)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (seller == null)
+            {
+                return NotFound();
+            }
+
+            return View(seller);
+        }
+
+        // POST: Sellers/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            if (_context.Seller == null)
+            {
+                return Problem("Entity set 'TemDeTudoContext.Seller'  is null.");
+            }
+            var seller = await _context.Seller.FindAsync(id);
+            if (seller != null)
+            {
+                _context.Seller.Remove(seller);
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
+        private bool SellerExists(int id)
+        {
+            return (_context.Seller?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
     }
 }
